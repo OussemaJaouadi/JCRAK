@@ -1,0 +1,6 @@
+pip install argparse
+pip install pyjwt
+pip install tqdm
+pip install colorama
+pip install pyfiglet
+pip install base64

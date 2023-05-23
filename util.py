@@ -26,14 +26,16 @@ def generate_full_banner():
 
 
 def decode_jwt_token(token):
-    header = base64.b64decode(token.split('.')[0].encode()).decode()
+    tmp = token.split('.')
+    header = base64.b64decode(tmp[0].encode()).decode()
     alg = json.loads(header)['alg']
     try:
-        decoded_token = jwt.decode(token, options={"verify_signature": False})
+        decoded_token = jwt.decode(token, options={"verify_signature": False},verify=False)
         payload = decoded_token
         return alg,header, payload
     except jwt.exceptions.InvalidTokenError:
-        return None, None
+        print(alg,header)
+        return alg,header, None
     
 def read_input(input_arg):
     if os.path.isfile(input_arg):
@@ -65,11 +67,17 @@ def apply_transformation(jwt_token, rule, wordlist_path):
                     if jwt_token == jwt.encode(payload, line, algorithm=alg):
                         return f"\n     {Fore.GREEN}{Style.BRIGHT}[SECRET] : {line}" 
                 elif rule == 'base64':
-                    if jwt_token == jwt.encode(payload, base64.b64encode(line.encode()).decode(), algorithm=alg):
+                    try :
+                        test = jwt.decode(jwt_token, base64.b64encode(line.strip().encode()).decode(), algorithms=[alg])
                         return f"\n     {Fore.GREEN}{Style.BRIGHT}[Real] : {Style.RESET_ALL}{Style.BRIGHT}{line} \n     {Fore.GREEN}{Style.BRIGHT}[Encoded] : {Style.RESET_ALL}{Style.BRIGHT}{base64.b64encode(line.encode()).decode()}" 
+                    except jwt.exceptions.InvalidSignatureError :
+                        pass
                 elif rule == 'base32':
-                    if jwt_token == jwt.encode(payload, base64.b32encode(line.encode()).decode(), algorithm=alg):
-                        return f"\n     {Fore.GREEN}{Style.BRIGHT}[Real] : {line} \n     {Style.RESET_ALL}{Style.BRIGHT}{Fore.GREEN}{Style.BRIGHT}[Encoded] : {Style.RESET_ALL}{Style.BRIGHT}{base64.b32decode(line.encode()).decode()}" 
+                    try:
+                        test = jwt.decode(jwt_token, base64.b32encode(line.strip().encode()).decode(), algorithms=[alg])
+                        return f"\n     {Fore.GREEN}{Style.BRIGHT}[Real] : {Style.RESET_ALL}{Style.BRIGHT}{line} \n     {Fore.GREEN}{Style.BRIGHT}[Encoded] : {Style.RESET_ALL}{Style.BRIGHT}{base64.b32encode(line.encode()).decode()}" 
+                    except jwt.exceptions.InvalidSignatureError :
+                        pass
                 progress_bar.update(1)
                 sys.stdout.flush()
                 time.sleep(0.01)
